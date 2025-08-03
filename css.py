@@ -43,6 +43,7 @@ a {
     transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; /* 影にもトランジション */
     position: relative; /* 疑似要素のために必要 */
     overflow: hidden; /* 疑似要素がはみ出さないように */
+    width: 200px;
 }
 
 a:hover {

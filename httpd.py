@@ -6,11 +6,13 @@ def start_page(state):
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <h1>Pico LED is {state}</h1>
-    <a href="/led/on">Turn ON</a>
-    <a href="/led/off">Turn OFF</a>
-    <a href="/play">Play Mario</a>
-    <a href="/stop">Stop Mario</a>
+    <div class="container">
+        <h1>Pico Operation Page</h1>
+        <a href="/led/on">LED ON</a>
+        <a href="/led/off">LED OFF</a>
+        <a href="/play">Play Mario</a>
+        <a href="/stop">Stop Mario</a>
+    </div>
 </body>
 </html>"""
     return html
