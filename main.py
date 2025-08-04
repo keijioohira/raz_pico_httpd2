@@ -1,13 +1,17 @@
+
+import dht11
 import httpd
 import css
 import network
 import socket
-from machine import Pin
 import time
 import _thread
 import mario
 
 play_flag = {'running': False}
+log_buffer = []
+auto_reload_flag = {'enabled': False}
+thread_flag = {'running': False}
 
 def play_music_thread():
     def should_continue():
@@ -24,36 +28,52 @@ def stop_music():
     print("[DEBUG] Music stop requested")
     play_flag['running'] = False
 
-def web_page_led(led):
-    return httpd.start_page("ON" if led.value() else "OFF")
+def auto_loop():
+    thread_flag['running'] = True
+    while auto_reload_flag['enabled']:
+        result = dht11.read_once()
+        log_buffer.append(result)
+        print("[DEBUG] Auto Measurement:", result)
+        time.sleep(300)
+    thread_flag['running'] = False
 
-def handle_request(path, led):
+def handle_request(path):
+    global log_buffer
+
     print(f"[DEBUG] Handling request path: {path}")
+
     if path == "/":
-        body = web_page_led(led)
+        body = httpd.start_page("\n".join(log_buffer))
         status = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-    elif path == "/led/on":
-        led.value(1)
-        body = web_page_led(led)
+
+    elif path == "/measure_start":
+        result = dht11.read_once()
+        log_buffer.append(result)
+        auto_reload_flag['enabled'] = True
+
+        if not thread_flag['running']:
+            _thread.start_new_thread(auto_loop, ())
+            print("[DEBUG] Started auto_loop thread")
+        else:
+            print("[DEBUG] auto_loop already running")
+
+        body = httpd.start_page("\n".join(log_buffer))
         status = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-    elif path == "/led/off":
-        led.value(0)
-        body = web_page_led(led)
+
+    elif path == "/measure_stop":
+        auto_reload_flag['enabled'] = False
+        print("[DEBUG] Measurement stopped")
+        body = httpd.start_page("\n".join(log_buffer))
         status = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-    elif path == "/play":
-        play_music_thread()
-        body = web_page_led(led)
-        status = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-    elif path == "/stop":
-        stop_music()
-        body = web_page_led(led)
-        status = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
+
     elif path == "/style.css":
         body = css.get_stylesheet()
         status = "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\n\r\n"
+
     else:
         body = "<html><body><h1>404 Not Found</h1></body></html>"
         status = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n"
+
     return status, body
 
 def wait_for_wifi(wlan, timeout=15):
@@ -78,9 +98,6 @@ def main():
     time.sleep(2)
     wait_for_wifi(wlan)
 
-    led = Pin("LED", Pin.OUT)
-
-    # ポート80が使われている場合は8080にフォールバック
     port = 80
     addr = socket.getaddrinfo("0.0.0.0", port)[0][-1]
     server = socket.socket()
@@ -112,7 +129,7 @@ def main():
             conn.close()
             continue
 
-        status, body = handle_request(path, led)
+        status, body = handle_request(path)
 
         conn.send(status)
         conn.send(body)

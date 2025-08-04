@@ -1,5 +1,6 @@
-def start_page(state):
-    html = """<!DOCTYPE html>
+
+def start_page(log_text=""):
+    html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +21,7 @@ def start_page(state):
 
         <div style="margin-top: 20px;">
             <label for="sensor" style="display:block; margin-bottom: 8px;">sensor data</label>
-            <input type="text" id="sensor" name="sensor" rows="30"size="30">
+            <textarea id="sensor" name="sensor" rows="30" cols="40" readonly>{log_text}</textarea>
         </div>
     </div>
 </body>
